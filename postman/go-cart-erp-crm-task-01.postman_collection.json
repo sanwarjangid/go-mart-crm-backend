@@ -1,0 +1,405 @@
+{
+  "info": {
+    "name": "GO-Cart ERP + CRM - Task 01 APIs",
+    "description": "Postman collection for Task 01: Businesses and Branches REST APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "business_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "branch_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Businesses",
+      "item": [
+        {
+          "name": "Create Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Response contains business UUID', function () {",
+                  "  pm.expect(res.success).to.eql(true);",
+                  "  pm.expect(res.data).to.be.an('object');",
+                  "  pm.expect(res.data.id).to.be.a('string');",
+                  "});",
+                  "if (res && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('business_id', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"GO-Cart Retail\",\n  \"legal_name\": \"GO-Cart Retail Private Limited\",\n  \"phone\": \"+91-9876543210\",\n  \"email\": \"contact@gocartretail.in\",\n  \"GSTIN\": \"27AABCG1234F1Z5\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/businesses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "businesses"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Businesses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Response returns array of businesses', function () {",
+                  "  pm.expect(res.success).to.eql(true);",
+                  "  pm.expect(res.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/businesses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "businesses"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Business By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Response matches requested business_id', function () {",
+                  "  pm.expect(res.success).to.eql(true);",
+                  "  pm.expect(res.data.id).to.eql(pm.collectionVariables.get('business_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/businesses/{{business_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "businesses",
+                "{{business_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "item": [
+        {
+          "name": "Create Branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Response contains branch UUID and linked business_id', function () {",
+                  "  pm.expect(res.success).to.eql(true);",
+                  "  pm.expect(res.data.id).to.be.a('string');",
+                  "  pm.expect(res.data.business_id).to.eql(pm.collectionVariables.get('business_id'));",
+                  "});",
+                  "if (res && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('branch_id', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_id\": \"{{business_id}}\",\n  \"branch_code\": \"MUM-HQ-01\",\n  \"branch_name\": \"Mumbai Head Office\",\n  \"address\": \"Plot 14, Andheri East, Mumbai, Maharashtra 400069\",\n  \"phone\": \"+91-2240012345\",\n  \"GSTIN\": \"27AABCG1234F1Z5\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/branches",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Branches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Response returns array of branches', function () {",
+                  "  pm.expect(res.success).to.eql(true);",
+                  "  pm.expect(res.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/branches",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Branch By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test('Response matches requested branch_id', function () {",
+                  "  pm.expect(res.success).to.eql(true);",
+                  "  pm.expect(res.data.id).to.eql(pm.collectionVariables.get('branch_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/branches/{{branch_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                "{{branch_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validation Tests",
+      "item": [
+        {
+          "name": "Create Business - Missing business_name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error message returned', function () {",
+                  "  pm.expect(pm.response.json().success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legal_name\": \"Missing Name Pvt Ltd\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/businesses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "businesses"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Branch - Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error message returned', function () {",
+                  "  pm.expect(pm.response.json().success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_id\": \"{{business_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/branches",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Branch - Non-Existent Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error message returned', function () {",
+                  "  pm.expect(pm.response.json().success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_id\": \"00000000-0000-4000-8000-000000000000\",\n  \"branch_code\": \"DEL-01\",\n  \"branch_name\": \"Delhi Branch\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/branches",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "branches"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

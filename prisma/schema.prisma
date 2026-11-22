@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Business {
+  id            String   @id @default(uuid()) @db.Char(36)
+  business_name String   @db.VarChar(255)
+  legal_name    String?  @db.VarChar(255)
+  phone         String?  @db.VarChar(20)
+  email         String?  @db.VarChar(255)
+  GSTIN         String?  @db.VarChar(15)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  branches      Branch[]
+
+  @@map("businesses")
+}
+
+model Branch {
+  id          String   @id @default(uuid()) @db.Char(36)
+  business_id String   @db.Char(36)
+  branch_code String   @db.VarChar(50)
+  branch_name String   @db.VarChar(255)
+  address     String?  @db.Text
+  phone       String?  @db.VarChar(20)
+  GSTIN       String?  @db.VarChar(15)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  business    Business @relation(fields: [business_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([business_id, branch_code])
+  @@index([business_id])
+  @@map("branches")
+}
