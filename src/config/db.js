@@ -3,12 +3,12 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { env } from './env.js';
 
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
+const { PrismaClient } = require('@prisma/client');
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(currentDir, '../..');
 

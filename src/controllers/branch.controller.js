@@ -9,13 +9,19 @@ export const createBranch = asyncHandler(async (req, res) => {
 });
 
 export const getAllBranches = asyncHandler(async (req, res) => {
-  const branches = await branchService.getAllBranches();
+  const branches = await branchService.getAllBranches(req.user);
 
   return res.status(200).json(new ApiResponse(200, branches, 'Branches fetched successfully'));
 });
 
 export const getBranchById = asyncHandler(async (req, res) => {
-  const branch = await branchService.getBranchById(req.params.id);
+  const branch = await branchService.getBranchById(req.params.id, req.user);
 
   return res.status(200).json(new ApiResponse(200, branch, 'Branch fetched successfully'));
+});
+
+export const updateBranch = asyncHandler(async (req, res) => {
+  const branch = await branchService.updateBranch(req.params.id, req.body, req.user);
+
+  return res.status(200).json(new ApiResponse(200, branch, 'Branch updated successfully'));
 });

@@ -1,4 +1,5 @@
-# GO-Cart ERP + CRM 
+# GO-Cart ERP + CRM – Task 01: Backend Setup & Database Foundation
+
 Backend service built with Node.js, Express.js, MySQL, and Prisma ORM using JavaScript ES Modules (`"type": "module"`).
 
 ## Tech Stack

@@ -1,39 +1,39 @@
 import prisma from '../config/db.js';
 
+const toId = (id) => BigInt(id);
+
 export const createBranchRecord = (data) => {
-  return prisma.branch.create({
-    data,
-    include: {
-      business: true,
-    },
-  });
+  return prisma.branch.create({ data });
 };
 
-export const getAllBranchRecords = () => {
+export const getAllBranchRecords = (branchIds) => {
   return prisma.branch.findMany({
-    include: {
-      business: true,
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
+    where: branchIds ? { id: { in: branchIds.map(toId) } } : undefined,
+    orderBy: { created_at: 'desc' },
   });
 };
 
 export const getBranchRecordById = (id) => {
   return prisma.branch.findUnique({
-    where: { id },
-    include: {
-      business: true,
-    },
+    where: { id: toId(id) },
   });
 };
 
-export const findBranchByBusinessAndCode = (business_id, branch_code) => {
-  return prisma.branch.findFirst({
-    where: {
-      business_id,
-      branch_code,
-    },
+export const findBranchByCode = (branch_code) => {
+  return prisma.branch.findUnique({
+    where: { branch_code },
+  });
+};
+
+export const updateBranchRecord = (id, data) => {
+  return prisma.branch.update({
+    where: { id: toId(id) },
+    data,
+  });
+};
+
+export const findBranchesByIds = (ids) => {
+  return prisma.branch.findMany({
+    where: { id: { in: ids.map(toId) } },
   });
 };

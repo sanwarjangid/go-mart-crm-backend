@@ -1,0 +1,1481 @@
+{
+  "info": {
+    "name": "mart-crm",
+    "description": "Run this collection from top to bottom with the server on http://localhost:4000.\n\nSeeded Super Admin: admin@gomart.local / Admin@123.\n\nThe runner creates branches and a cashier, checks duplicate email, branch access, inactive login, roles, and permissions. It updates a branch, then registers a sync device and pushes an offline customer, invoice, and payment. It does not change the admin password.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:4000" },
+    { "key": "token", "value": "" },
+    { "key": "cashier_token", "value": "" },
+    { "key": "user_email", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "branch_id", "value": "" },
+    { "key": "branch_id_2", "value": "" },
+    { "key": "branch_id_3", "value": "" },
+    { "key": "business_id", "value": "" },
+    { "key": "role_id", "value": "" },
+    { "key": "permission_id", "value": "" },
+    { "key": "customer_id", "value": "" },
+    { "key": "unit_id", "value": "" },
+    { "key": "tax_rate_id", "value": "" },
+    { "key": "category_id", "value": "" },
+    { "key": "product_id", "value": "" },
+    { "key": "variant_id", "value": "" },
+    { "key": "offer_id", "value": "" },
+    { "key": "invoice_id", "value": "" },
+    { "key": "invoice_item_id", "value": "" },
+    { "key": "return_id", "value": "" },
+    { "key": "payment_mode_id", "value": "" },
+    { "key": "branch_code", "value": "" },
+    { "key": "branch_code_2", "value": "" },
+    { "key": "device_uuid", "value": "" },
+    { "key": "sync_invoice_item_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login - valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const res = pm.response.json();",
+                  "pm.test('Token returned and password hidden', function () {",
+                  "  pm.expect(res.success).to.eql(true);",
+                  "  pm.expect(res.data.token).to.be.a('string');",
+                  "  pm.expect(res.data.user).to.not.have.property('password');",
+                  "});",
+                  "pm.collectionVariables.set('token', res.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gomart.local\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login - invalid password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gomart.local\",\n  \"password\": \"wrong-password\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const res = pm.response.json();",
+                  "pm.test('Logged-in admin profile', function () {",
+                  "  pm.expect(res.data.email).to.eql('admin@gomart.local');",
+                  "  pm.expect(res.data).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Me - no token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Branches",
+      "item": [
+        {
+          "name": "Create branch A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('branch_id', pm.response.json().data.id);",
+                  "pm.collectionVariables.set('branch_code', pm.response.json().data.branch_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_code\": \"A{{$timestamp}}\",\n  \"branch_name\": \"Andheri Store\",\n  \"city\": \"Mumbai\",\n  \"phone\": \"02240001111\"\n}"
+            },
+            "url": "{{base_url}}/api/branches"
+          }
+        },
+        {
+          "name": "Create branch B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('branch_id_2', pm.response.json().data.id);",
+                  "pm.collectionVariables.set('branch_code_2', pm.response.json().data.branch_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_code\": \"B{{$timestamp}}\",\n  \"branch_name\": \"Bandra Store\",\n  \"city\": \"Mumbai\"\n}"
+            },
+            "url": "{{base_url}}/api/branches"
+          }
+        },
+        {
+          "name": "Create unassigned branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('branch_id_3', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_code\": \"C{{$timestamp}}\",\n  \"branch_name\": \"Unassigned Store\"\n}"
+            },
+            "url": "{{base_url}}/api/branches"
+          }
+        },
+        {
+          "name": "List branches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Array returned', function () { pm.expect(pm.response.json().data).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/branches" }
+        },
+        {
+          "name": "Get branch by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/branches/{{branch_id}}" }
+        },
+        {
+          "name": "Update branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const branch = pm.response.json().data;",
+                  "pm.test('Phone and GSTIN saved', function () {",
+                  "  pm.expect(branch.phone).to.eql('02240001122');",
+                  "  pm.expect(branch.gstin).to.eql('27AAAAA0000A1Z5');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"02240001122\",\n  \"gstin\": \"27AAAAA0000A1Z5\"\n}"
+            },
+            "url": "{{base_url}}/api/branches/{{branch_id}}"
+          }
+        },
+        {
+          "name": "Update branch - duplicate code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_code\": \"{{branch_code_2}}\"\n}"
+            },
+            "url": "{{base_url}}/api/branches/{{branch_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Users",
+      "item": [
+        {
+          "name": "Create user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('user_email', 'cashier.' + Date.now() + '@gomart.local');",
+                  "pm.collectionVariables.set('employee_code', 'GC-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const res = pm.response.json();",
+                  "pm.test('Password is not returned', function () { pm.expect(res.data).to.not.have.property('password'); });",
+                  "pm.test('Employee code is saved', function () { pm.expect(res.data.employee_code).to.eql(pm.collectionVariables.get('employee_code')); });",
+                  "pm.collectionVariables.set('user_id', res.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Cashier\",\n  \"email\": \"{{user_email}}\",\n  \"phone\": \"9876543210\",\n  \"employee_code\": \"{{employee_code}}\",\n  \"password\": \"Cashier@123\",\n  \"role_id\": 3,\n  \"branch_ids\": [{{branch_id}}],\n  \"default_branch_id\": {{branch_id}}\n}"
+            },
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "Create user - duplicate email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Cashier\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"Cashier@123\",\n  \"role_id\": 3,\n  \"branch_ids\": [{{branch_id}}]\n}"
+            },
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "Create user - duplicate employee code",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('user_email_2', 'cashier.dup.' + Date.now() + '@gomart.local');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Cashier\",\n  \"email\": \"{{user_email_2}}\",\n  \"employee_code\": \"{{employee_code}}\",\n  \"password\": \"Cashier@123\",\n  \"role_id\": 3,\n  \"branch_ids\": [{{branch_id}}]\n}"
+            },
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "List users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/users" }
+        },
+        {
+          "name": "Get user by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Same user', function () { pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get('user_id')); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/users/{{user_id}}" }
+        },
+        {
+          "name": "Update user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Cashier Updated\",\n  \"phone\": \"9876500000\"\n}"
+            },
+            "url": "{{base_url}}/api/users/{{user_id}}"
+          }
+        },
+        {
+          "name": "Reset user password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Password is not returned', function () { pm.expect(pm.response.json().data).to.eql(null); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"Cashier@123\"\n}"
+            },
+            "url": "{{base_url}}/api/users/{{user_id}}/password"
+          }
+        },
+        {
+          "name": "Assign multiple branches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Two branches assigned', function () { pm.expect(pm.response.json().data.branches).to.have.lengthOf(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_ids\": [{{branch_id}}, {{branch_id_2}}],\n  \"default_branch_id\": {{branch_id}}\n}"
+            },
+            "url": "{{base_url}}/api/users/{{user_id}}/branches"
+          }
+        },
+        {
+          "name": "List users - no token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/users"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Cashier access",
+      "item": [
+        {
+          "name": "Login cashier",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('cashier_token', pm.response.json().data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"Cashier@123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Get assigned branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{cashier_token}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{base_url}}/api/branches/{{branch_id}}"
+          }
+        },
+        {
+          "name": "Get unassigned branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{cashier_token}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{base_url}}/api/branches/{{branch_id_3}}"
+          }
+        },
+        {
+          "name": "Cashier cannot list users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{cashier_token}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "Change cashier password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{cashier_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Cashier@123\",\n  \"new_password\": \"Cashier@1234\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/change-password"
+          }
+        },
+        {
+          "name": "Login cashier with new password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"Cashier@1234\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. User status",
+      "item": [
+        {
+          "name": "Deactivate user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Inactive', function () { pm.expect(pm.response.json().data.is_active).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"is_active\": false\n}" },
+            "url": "{{base_url}}/api/users/{{user_id}}/status"
+          }
+        },
+        {
+          "name": "Login inactive user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"Cashier@1234\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Activate user again",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Active', function () { pm.expect(pm.response.json().data.is_active).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"is_active\": true\n}" },
+            "url": "{{base_url}}/api/users/{{user_id}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Roles and permissions",
+      "item": [
+        {
+          "name": "List roles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const names = pm.response.json().data.map(role => role.name);",
+                  "pm.test('Initial roles exist', function () {",
+                  "  pm.expect(names).to.include.members(['Super Admin', 'Branch Manager', 'Cashier']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/roles" }
+        },
+        {
+          "name": "List permissions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('permission_id', pm.response.json().data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/permissions" }
+        },
+        {
+          "name": "Create role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('role_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Auditor {{$timestamp}}\",\n  \"description\": \"Read-only audit role\"\n}"
+            },
+            "url": "{{base_url}}/api/roles"
+          }
+        },
+        {
+          "name": "Update role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated audit role\"\n}"
+            },
+            "url": "{{base_url}}/api/roles/{{role_id}}"
+          }
+        },
+        {
+          "name": "Assign permissions to role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Permission attached', function () { pm.expect(pm.response.json().data.permissions.length).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission_ids\": [{{permission_id}}]\n}"
+            },
+            "url": "{{base_url}}/api/roles/{{role_id}}/permissions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Businesses",
+      "item": [
+        {
+          "name": "Create business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('business_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"GO Mart\",\n  \"legal_name\": \"GO Mart Retail Private Limited\",\n  \"phone\": \"02240001234\",\n  \"email\": \"contact@gomart.local\",\n  \"city\": \"Mumbai\"\n}"
+            },
+            "url": "{{base_url}}/api/businesses"
+          }
+        },
+        {
+          "name": "List businesses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/businesses"
+          }
+        },
+        {
+          "name": "Get business by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/api/businesses/{{business_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Customers",
+      "item": [
+        {
+          "name": "Create customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const res = pm.response.json();",
+                  "pm.collectionVariables.set('customer_id', res.data.id);",
+                  "pm.test('Customer code generated', function () { pm.expect(res.data.customer_code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_name\": \"Ravi Sharma\",\n  \"phone\": \"98{{$timestamp}}\",\n  \"email\": \"ravi.{{$timestamp}}@gomart.local\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1992-05-10\",\n  \"city\": \"Mumbai\"\n}"
+            },
+            "url": "{{base_url}}/api/customers"
+          }
+        },
+        {
+          "name": "List customers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/customers?search=Ravi" }
+        },
+        {
+          "name": "Get customer by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/customers/{{customer_id}}" }
+        },
+        {
+          "name": "Update customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Name updated', function () { pm.expect(pm.response.json().data.customer_name).to.eql('Ravi Sharma Updated'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_name\": \"Ravi Sharma Updated\",\n  \"gstin\": \"27AAAAA0000A1Z5\"\n}"
+            },
+            "url": "{{base_url}}/api/customers/{{customer_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Products",
+      "item": [
+        {
+          "name": "Create unit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('unit_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"unit_name\": \"Piece\",\n  \"unit_symbol\": \"U{{$timestamp}}\"\n}" },
+            "url": "{{base_url}}/api/units"
+          }
+        },
+        {
+          "name": "Create tax rate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('tax_rate_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"tax_name\": \"GST 18\",\n  \"tax_percentage\": 18,\n  \"tax_type\": \"GST\"\n}" },
+            "url": "{{base_url}}/api/tax-rates"
+          }
+        },
+        {
+          "name": "Create category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('category_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"category_name\": \"Grocery\",\n  \"description\": \"Daily grocery items\"\n}" },
+            "url": "{{base_url}}/api/product-categories"
+          }
+        },
+        {
+          "name": "Create product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const res = pm.response.json();",
+                  "pm.collectionVariables.set('product_id', res.data.id);",
+                  "pm.test('Product code generated', function () { pm.expect(res.data.product_code).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"product_name\": \"Toor Dal\",\n  \"category_id\": {{category_id}},\n  \"unit_id\": {{unit_id}},\n  \"hsn_code\": \"0713\"\n}" },
+            "url": "{{base_url}}/api/products"
+          }
+        },
+        {
+          "name": "List products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/products?search=Toor" }
+        },
+        {
+          "name": "Get product by id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/products/{{product_id}}" }
+        },
+        {
+          "name": "Create variant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const res = pm.response.json();",
+                  "pm.collectionVariables.set('variant_id', res.data.id);",
+                  "pm.test('SKU generated', function () { pm.expect(res.data.sku).to.match(/^SKU/); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"variant_name\": \"1 kg\",\n  \"barcode\": \"890{{$timestamp}}\",\n  \"purchase_price\": 90,\n  \"selling_price\": 110,\n  \"mrp\": 120\n}" },
+            "url": "{{base_url}}/api/products/{{product_id}}/variants"
+          }
+        },
+        {
+          "name": "Save branch price",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Stock is saved', function () { pm.expect(pm.response.json().data.stock_quantity).to.eql(25); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"branch_id\": {{branch_id}},\n  \"product_variant_id\": {{variant_id}},\n  \"purchase_price\": 92,\n  \"selling_price\": 115,\n  \"mrp\": 125,\n  \"stock_quantity\": 25,\n  \"tax_rate_id\": {{tax_rate_id}}\n}" },
+            "url": "{{base_url}}/api/branch-product-prices"
+          }
+        },
+        {
+          "name": "List branch prices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/branch-product-prices?branch_id={{branch_id}}&product_variant_id={{variant_id}}" }
+        },
+        {
+          "name": "Update product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Name updated', function () { pm.expect(pm.response.json().data.product_name).to.eql('Toor Dal Premium'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"product_name\": \"Toor Dal Premium\"\n}" },
+            "url": "{{base_url}}/api/products/{{product_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Billing",
+      "item": [
+        {
+          "name": "List payment modes",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+            "const cash = pm.response.json().data.find((mode) => mode.mode_name === 'Cash');",
+            "pm.collectionVariables.set('payment_mode_id', cash.id);"
+          ] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/payment-modes" }
+        },
+        {
+          "name": "Create offer",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+            "pm.collectionVariables.set('offer_id', pm.response.json().data.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"offer_name\": \"Festival 10\",\n  \"offer_code\": \"FEST{{$timestamp}}\",\n  \"discount_type\": \"percent\",\n  \"discount_value\": 10,\n  \"minimum_purchase\": 0,\n  \"start_date\": \"2026-01-01T00:00:00\",\n  \"end_date\": \"2026-12-31T23:59:59\",\n  \"branch_ids\": [{{branch_id}}],\n  \"product_variant_ids\": [{{variant_id}}]\n}" },
+            "url": "{{base_url}}/api/offers"
+          }
+        },
+        {
+          "name": "Create invoice",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+            "const res = pm.response.json();",
+            "pm.collectionVariables.set('invoice_id', res.data.id);",
+            "pm.collectionVariables.set('invoice_item_id', res.data.items[0].id);",
+            "pm.test('Invoice number generated', function () { pm.expect(res.data.invoice_number).to.be.a('string'); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"branch_id\": {{branch_id}},\n  \"customer_id\": {{customer_id}},\n  \"tax_mode\": \"intra\",\n  \"items\": [\n    {\n      \"product_variant_id\": {{variant_id}},\n      \"quantity\": 2\n    }\n  ],\n  \"payments\": [\n    {\n      \"payment_mode_id\": {{payment_mode_id}},\n      \"amount\": 100\n    }\n  ]\n}" },
+            "url": "{{base_url}}/api/sales-invoices"
+          }
+        },
+        {
+          "name": "Get invoice",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/sales-invoices/{{invoice_id}}" }
+        },
+        {
+          "name": "Create sales return",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+            "const res = pm.response.json();",
+            "pm.collectionVariables.set('return_id', res.data.id);",
+            "pm.test('Return number generated', function () { pm.expect(res.data.return_number).to.match(/^RET/); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"items\": [\n    {\n      \"invoice_item_id\": {{invoice_item_id}},\n      \"quantity\": 1\n    }\n  ],\n  \"refund_amount\": 10,\n  \"refund_mode_id\": {{payment_mode_id}}\n}" },
+            "url": "{{base_url}}/api/sales-invoices/{{invoice_id}}/returns"
+          }
+        },
+        {
+          "name": "List sales returns",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/sales-returns?invoice_id={{invoice_id}}" }
+        },
+        {
+          "name": "Get sales return",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/sales-returns/{{return_id}}" }
+        },
+        {
+          "name": "Daily sales",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/reports/daily-sales?date=2026-11-21&branch_id={{branch_id}}" }
+        },
+        {
+          "name": "Monthly sales",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/reports/monthly-sales?month=2026-11&branch_id={{branch_id}}" }
+        },
+        {
+          "name": "Salesperson sales",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/reports/salesperson-sales?from=2026-11-01&to=2026-11-30&branch_id={{branch_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "11. Sync",
+      "item": [
+        {
+          "name": "Register device",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('device_uuid', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Device id returned', function () { pm.expect(pm.response.json().data.id).to.be.a('number'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_id\": {{branch_id}},\n  \"device_uuid\": \"{{device_uuid}}\",\n  \"device_name\": \"Counter 1\"\n}"
+            },
+            "url": "{{base_url}}/api/sync/devices"
+          }
+        },
+        {
+          "name": "Sync status - unknown device",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/sync/status?device_uuid=11111111-1111-4111-8111-111111111111" }
+        },
+        {
+          "name": "Sync status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const summary = pm.response.json().data.summary;",
+                  "pm.test('Summary counts returned', function () {",
+                  "  pm.expect(summary).to.have.keys('pending', 'failed', 'stored', 'synced');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/sync/status?device_uuid={{device_uuid}}" }
+        },
+        {
+          "name": "Push offline customer invoice and payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const results = pm.response.json().data.results;",
+                  "pm.test('Customer, invoice, and payment synced', function () {",
+                  "  pm.expect(results.map((row) => row.status)).to.eql(['synced', 'synced', 'synced']);",
+                  "});",
+                  "pm.collectionVariables.set('sync_invoice_item_id', results[1].items[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_uuid\": \"{{device_uuid}}\",\n  \"records\": [\n    {\n      \"entity_type\": \"customer\",\n      \"entity_id\": \"local-cust-1\",\n      \"operation_type\": \"create\",\n      \"payload\": {\n        \"customer_name\": \"Offline Customer\",\n        \"phone\": \"9811100099\",\n        \"gstin\": \"27AAPFU0939F1ZV\",\n        \"city\": \"Mumbai\"\n      }\n    },\n    {\n      \"entity_type\": \"sales_invoice\",\n      \"entity_id\": \"local-inv-1\",\n      \"operation_type\": \"create\",\n      \"payload\": {\n        \"customer_entity_id\": \"local-cust-1\",\n        \"tax_mode\": \"intra\",\n        \"items\": [\n          {\n            \"product_variant_id\": {{variant_id}},\n            \"quantity\": 1,\n            \"unit_price\": 50,\n            \"tax_rate\": 0\n          }\n        ]\n      }\n    },\n    {\n      \"entity_type\": \"payment\",\n      \"entity_id\": \"local-pay-1\",\n      \"operation_type\": \"create\",\n      \"payload\": {\n        \"invoice_entity_id\": \"local-inv-1\",\n        \"payment_mode_id\": {{payment_mode_id}},\n        \"amount\": 50\n      }\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/sync/push"
+          }
+        },
+        {
+          "name": "Push duplicate customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Customer create is a duplicate', function () {",
+                  "  pm.expect(pm.response.json().data.results[0].status).to.eql('duplicate');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_uuid\": \"{{device_uuid}}\",\n  \"records\": [\n    {\n      \"entity_type\": \"customer\",\n      \"entity_id\": \"local-cust-1\",\n      \"operation_type\": \"create\",\n      \"payload\": {\n        \"customer_name\": \"Offline Customer\"\n      }\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/sync/push"
+          }
+        },
+        {
+          "name": "Push customer update and return",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Update and return synced', function () {",
+                  "  pm.expect(pm.response.json().data.results.map((row) => row.status)).to.eql(['synced', 'synced']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_uuid\": \"{{device_uuid}}\",\n  \"records\": [\n    {\n      \"entity_type\": \"customer\",\n      \"entity_id\": \"local-cust-1\",\n      \"operation_type\": \"update\",\n      \"payload\": {\n        \"city\": \"Bandra\"\n      }\n    },\n    {\n      \"entity_type\": \"sales_return\",\n      \"entity_id\": \"local-ret-1\",\n      \"operation_type\": \"create\",\n      \"payload\": {\n        \"invoice_entity_id\": \"local-inv-1\",\n        \"items\": [\n          {\n            \"invoice_item_id\": {{sync_invoice_item_id}},\n            \"quantity\": 1\n          }\n        ],\n        \"refund_amount\": 50,\n        \"refund_mode_id\": {{payment_mode_id}}\n      }\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/sync/push"
+          }
+        },
+        {
+          "name": "Push invoice cancel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const results = pm.response.json().data.results;",
+                  "pm.test('Invoice created and cancelled', function () {",
+                  "  pm.expect(results.map((row) => row.status)).to.eql(['synced', 'synced']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_uuid\": \"{{device_uuid}}\",\n  \"records\": [\n    {\n      \"entity_type\": \"sales_invoice\",\n      \"entity_id\": \"local-inv-cancel\",\n      \"operation_type\": \"create\",\n      \"payload\": {\n        \"items\": [\n          {\n            \"product_variant_id\": {{variant_id}},\n            \"quantity\": 1,\n            \"unit_price\": 20,\n            \"tax_rate\": 0\n          }\n        ]\n      }\n    },\n    {\n      \"entity_type\": \"sales_invoice\",\n      \"entity_id\": \"local-inv-cancel\",\n      \"operation_type\": \"cancel\",\n      \"payload\": {\n        \"invoice_entity_id\": \"local-inv-cancel\"\n      }\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/sync/push"
+          }
+        },
+        {
+          "name": "Sync status after push",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Synced rows are listed', function () {",
+                  "  pm.expect(pm.response.json().data.summary.synced).to.be.above(0);",
+                  "  pm.expect(pm.response.json().data.records[0]).to.not.have.property('payload');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{base_url}}/api/sync/status?device_uuid={{device_uuid}}" }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  }
+}

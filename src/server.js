@@ -1,14 +1,15 @@
 import app from './app.js';
 import { env } from './config/env.js';
-import prisma, { connectDB, runMigrations } from './config/db.js';
+import prisma, { connectDB } from './config/db.js';
+import { seedAuthData } from './services/seed.service.js';
 
 let server;
 
 const startServer = async () => {
   if (env.hasDbConfig) {
     try {
-      await runMigrations();
       await connectDB();
+      await seedAuthData();
       console.log('Database connected');
     } catch (error) {
       const details = error.stderr || error.stdout || error.message;
@@ -20,6 +21,16 @@ const startServer = async () => {
 
   server = app.listen(env.port, '0.0.0.0', () => {
     console.log(`Server running on port ${env.port}`);
+  });
+
+  server.on('error', (error) => {
+    console.log(error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${env.port} is already in use. Stop the other process or change PORT in .env.`);
+    } else {
+      console.error(error);
+    }
+    process.exit(1);
   });
 };
 

@@ -19,8 +19,10 @@ export const buildDatabaseUrl = (config = db) => {
 };
 
 export const env = {
-  port: Number(process.env.PORT) || 3000,
+  port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
+  jwtSecret: process.env.JWT_SECRET || 'change-this-jwt-secret',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   db,
   hasDbConfig: Boolean(process.env.DB_HOST || process.env.DB_USER || process.env.DB_NAME),
 };

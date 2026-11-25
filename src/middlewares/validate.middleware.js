@@ -32,6 +32,17 @@ export const validate = (schema) => (req, res, next) => {
   return next();
 };
 
+export const validateIdParam = (req, res, next) => {
+  if (!/^[1-9]\d*$/.test(req.params.id || '')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid id parameter',
+    });
+  }
+
+  return next();
+};
+
 export const validateUuidParam = (req, res, next) => {
   const parsed = z
     .string()

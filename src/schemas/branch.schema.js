@@ -1,26 +1,36 @@
 import { z } from 'zod';
-import { optionalBoolean, optionalString, requiredString, uuidString } from './common.schema.js';
-
-const ADDRESS_MAX_BYTES = 65535;
+import { optionalBoolean, optionalEmail, optionalString, requiredString } from './common.schema.js';
 
 export const createBranchSchema = z.object({
+  body: z.object({
+    branch_code: requiredString('branch_code', 30),
+    branch_name: requiredString('branch_name', 150),
+    address: optionalString('address', 65535),
+    city: optionalString('city', 100),
+    state: optionalString('state', 100),
+    pincode: optionalString('pincode', 12),
+    phone: optionalString('phone', 20),
+    email: optionalEmail,
+    gstin: optionalString('gstin', 20),
+    is_active: optionalBoolean('is_active'),
+  }),
+});
+
+export const updateBranchSchema = z.object({
   body: z
     .object({
-      business_id: uuidString('business_id'),
-      branch_code: requiredString('branch_code', 50),
-      branch_name: requiredString('branch_name', 255),
-      address: optionalString('address', ADDRESS_MAX_BYTES),
-      phone: optionalString('phone', 20),
-      GSTIN: optionalString('GSTIN', 15),
-      is_active: optionalBoolean('is_active'),
+      branch_code: requiredString('branch_code', 30).optional(),
+      branch_name: requiredString('branch_name', 150).optional(),
+      address: optionalString('address', 65535).optional(),
+      city: optionalString('city', 100).optional(),
+      state: optionalString('state', 100).optional(),
+      pincode: optionalString('pincode', 12).optional(),
+      phone: optionalString('phone', 20).optional(),
+      email: optionalEmail.optional(),
+      gstin: optionalString('gstin', 20).optional(),
+      is_active: z.boolean({ invalid_type_error: 'is_active must be a boolean' }).optional(),
     })
-    .superRefine((value, ctx) => {
-      if (value.address && Buffer.byteLength(value.address, 'utf8') > ADDRESS_MAX_BYTES) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['address'],
-          message: `address must not exceed ${ADDRESS_MAX_BYTES} bytes`,
-        });
-      }
+    .refine((value) => Object.values(value).some((item) => item !== undefined), {
+      message: 'At least one field is required',
     }),
 });
